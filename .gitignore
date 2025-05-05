@@ -1,0 +1,45 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+.envrc
+.venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# VSCode settings (jika pakai)
+.vscode/
+
+# Mac OS metadata
+.DS_Store
+
+# Log files
+*.log
+
+# Pytest
+.cache/
+.pytest_cache/
+
+# Librosa temp
+librosa_temp*
+
+# Output files
+*.wav
+*.mp3
+*.jpg
+*.png
+*.npy
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# Database atau file fingerprint
+fingerprints/
+dataset/
