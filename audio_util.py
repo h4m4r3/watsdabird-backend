@@ -5,67 +5,138 @@ import numpy as np
 
 class AudioUtil:
     # ----------------------------
-    # Load an audio file. Return the signal as a tensor and the sample rate
+    # Loads an audio file from disk at a specified sample rate and returns its
+    # waveform array and sample rate.
     # ----------------------------
     @staticmethod
-    def open(audio_path, sample_rate=22050, is_mono=True):
-        y, sr = librosa.load(audio_path, sample_rate, mono=is_mono)
+    def open(audio_path, sample_rate=22050, mono=True):
+        y, sr = librosa.load(audio_path, sr=sample_rate, mono=mono)
         return (y, sr)
 
     # ----------------------------
-    # Extends the audio to a given sample length by adding silence
+    # Saves the given audio array and sample rate to a file with the specified
+    # name and extension.
     # ----------------------------
     @staticmethod
-    def pad(audio, size, output_path, audio_name, axis=-1):
-        y, sr = audio
-        padded_y = librosa.util.fix_length(y, size=size, axis=axis)
+    def write(y, output_path, audio_name, extension, sample_rate=22050):
+        if extension == "npy":
+            np.save(f"{output_path}/{audio_name}.{extension}", y)
+            return
+
         sf.write(
-            f"{output_path}/{audio_name}.mp3",
-            padded_y.T,
-            sr,
+            f"{output_path}/{audio_name}.{extension}",
+            y.T,
+            sample_rate,
         )
 
     # ----------------------------
-    # Splits the audio into fixed‐length overlapping segments
+    # Divides the audio into fixed-length overlapping segments, padding the
+    # final segment if it’s shorter than the window.
     # ----------------------------
     @staticmethod
-    def split(audio, window_ms, overlap_ms, output_path, audio_name):
+    def split(audio, window_ms, overlap_ms):
+        y, sr = audio
+        chunks = []
+
+        y_length = y.shape[-1]
+        window_length = int(sr * window_ms / 1000)
+        overlap_length = int(sr * overlap_ms / 1000)
+
+        if y_length < window_length:
+            padded_y, sr = AudioUtil.pad_trunc(audio, window_ms)
+            chunks.append((padded_y, sr))
+            return chunks
+
+        hop_start = 0
+
+        while hop_start <= y_length:
+            if y.ndim == 1:
+                chunk = y[hop_start : hop_start + window_length]
+            else:
+                chunk = y[:, hop_start : hop_start + window_length]
+
+            if len(chunk) < window_length:
+                padded_chunk, sr = AudioUtil.pad_trunc((chunk, sr), window_ms)
+                chunks.append((padded_chunk, sr))
+                break
+
+            chunks.append((chunk, sr))
+
+            hop_start += window_length - overlap_length
+
+        return chunks
+
+    # ----------------------------
+    # Adjusts the audio length to a target duration by padding with silence or
+    # truncating as needed.
+    # ----------------------------
+    @staticmethod
+    def pad_trunc(audio, duration_ms, axis=-1):
+        y, sr = audio
+        size = int(sr * duration_ms / 1000)
+        padded_y = librosa.util.fix_length(y, size=size, axis=axis)
+        return (padded_y, sr)
+
+    # ----------------------------
+    # Shifts the audio in time by a given number of milliseconds, filling the
+    # gap with zeros at the start or end.
+    # ----------------------------
+    @staticmethod
+    def time_shift_zero_pad(audio, duration_ms):
         y, sr = audio
 
         y_length = y.shape[-1]
-        window_length = sr * round(window_ms / 1000)
-        overlap_length = sr * round(overlap_ms / 1000)
+        shift_length = int(sr * abs(duration_ms) / 1000)
 
-        # pad the audio with silence if the audio length is less than the desire duration
-        if y_length < window_length:
-            AudioUtil.pad(
-                audio,
-                window_length,
-                output_path,
-                audio_name,
-            )
-            return
+        if y.ndim == 1:
+            zero_pad = np.zeros(abs(shift_length))
 
-        hop_start = 0
-        count = 1
+            if duration_ms < 0:
+                padded_y = np.concatenate((y[shift_length:], zero_pad))
+            else:
+                padded_y = np.concatenate((zero_pad, y[: y_length - shift_length]))
 
-        while hop_start <= y_length:
-            chunk = y[hop_start : hop_start + window_length]
+            return (padded_y, sr)
 
-            if len(chunk) < window_length:
-                AudioUtil.pad(
-                    (chunk, sr),
-                    window_length,
-                    output_path,
-                    f"{audio_name}({count})",
-                )
-                return
+        zero_pad = np.zeros((y.shape[0], abs(shift_length)))
 
-            sf.write(
-                f"{output_path}/{audio_name}({count}).mp3",
-                chunk.T,
-                sr,
+        if duration_ms < 0:
+            padded_y = np.concatenate((y[:, shift_length:], zero_pad), axis=1)
+        else:
+            padded_y = np.concatenate(
+                (zero_pad, y[:, : y_length - shift_length]), axis=1
             )
 
-            hop_start += window_length - overlap_length
-            count += 1
+        return (padded_y, sr)
+
+    # ----------------------------
+    # Generate agit  Spectrogram.
+    # ----------------------------
+    @staticmethod
+    def melspectrogram(audio):
+        y, sr = audio
+        spec = librosa.feature.melspectrogram(y, sr=sr)
+        spec = librosa.power_to_db(S=spec, ref=np.max)
+        return spec
+
+    # ----------------------------
+    # Time mask
+    # ----------------------------
+    @staticmethod
+    def time_mask(spec, T):
+        _, n_frames = spec.shape
+        t = np.random.randint(0, T)
+        t0 = np.random.randint(0, n_frames - t)
+        spec[:, t0 : t0 + t] = 0
+        return spec
+
+    # ----------------------------
+    # Frequency mask
+    # ----------------------------
+    @staticmethod
+    def freq_mask(spec, F):
+        n_mels, _ = spec.shape
+        f = np.random.randint(0, F)
+        f0 = np.random.randint(0, n_mels - f)
+        spec[f0 : f0 + f, :] = 0
+        return spec
