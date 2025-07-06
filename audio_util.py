@@ -115,7 +115,7 @@ class AudioUtil:
     @staticmethod
     def melspectrogram(audio):
         y, sr = audio
-        spec = librosa.feature.melspectrogram(y, sr=sr)
+        spec = librosa.feature.melspectrogram(y=y, sr=sr)
         spec = librosa.power_to_db(S=spec, ref=np.max)
         return spec
 
@@ -124,19 +124,21 @@ class AudioUtil:
     # ----------------------------
     @staticmethod
     def time_mask(spec, T):
-        _, n_frames = spec.shape
+        aug_spec = spec.copy()
+        _, n_frames = aug_spec.shape
         t = np.random.randint(0, T)
         t0 = np.random.randint(0, n_frames - t)
-        spec[:, t0 : t0 + t] = 0
-        return spec
+        aug_spec[:, t0 : t0 + t] = 0
+        return aug_spec
 
     # ----------------------------
     # Frequency mask
     # ----------------------------
     @staticmethod
     def freq_mask(spec, F):
-        n_mels, _ = spec.shape
+        aug_spec = spec.copy()
+        n_mels, _ = aug_spec.shape
         f = np.random.randint(0, F)
         f0 = np.random.randint(0, n_mels - f)
-        spec[f0 : f0 + f, :] = 0
-        return spec
+        aug_spec[f0 : f0 + f, :] = 0
+        return aug_spec
