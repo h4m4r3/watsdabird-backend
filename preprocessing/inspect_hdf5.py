@@ -3,15 +3,28 @@ import h5py
 import numpy as np
 
 
-def inspect_hdf5(file_path):
+def inspect_hdf5(file_path: str) -> None:
+    """
+    Inspects the structure and contents of an HDF5 dataset file.
+
+    This function prints metadata including dataset structure, shape,
+    data types, compression details, and a sample of the data such as
+    spectrogram statistics and label distribution.
+
+    Args:
+        file_path (str): Path to the HDF5 file to inspect.
+
+    Returns:
+        None
+    """
     with h5py.File(file_path, "r") as hf:
         print("=" * 50)
         print(f"📁 File: {file_path}")
         print(f"📊 Size: {os.path.getsize(file_path)/1024**3:.2f} GB")
         print("=" * 50)
 
-        # Print struktur file
-        print("\n🔍 Struktur Dataset:")
+        # Print dataset structure
+        print("\n🔍 Dataset Structure:")
 
         def print_attrs(name, obj):
             print(f"{name}:")
@@ -27,7 +40,7 @@ def inspect_hdf5(file_path):
 
         hf.visititems(print_attrs)
 
-        # Contoh membaca beberapa data
+        # Sample data statistics
         print("\n📝 Sample Data:")
         if "spectrograms" in hf:
             print("First spectrogram stats:")

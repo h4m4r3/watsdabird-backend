@@ -40,7 +40,4 @@ build/
 dist/
 *.egg-info/
 
-# Database atau file fingerprint
-fingerprints/
-dataset*/
-dataset*
+data*
