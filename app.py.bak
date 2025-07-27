@@ -2,7 +2,8 @@ from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 import os
 import numpy as np
-# Hapus import keras_cv_attention_models dan tensorflow.keras.models
+from keras_cv_attention_models import *
+from tensorflow.keras.models import load_model
 import tensorflow as tf
 from preprocessing.audio_util import AudioUtil
 
@@ -11,7 +12,7 @@ from preprocessing.audio_util import AudioUtil
 # ----------------------------
 UPLOAD_FOLDER = "./data/uploads"
 ALLOWED_EXTENSIONS = {"wav", "mp3", "flac", "ogg"}
-MODEL_PATH = "./models/model.tflite"  # Ganti dari .keras ke .tflite
+MODEL_PATH = "./models/model.keras"
 TARGET_SHAPE = (64, 108)
 NUM_CLASSES = 4
 SAMPLE_RATE = 22050
@@ -32,17 +33,8 @@ app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Load TFLite model
-interpreter = tf.lite.Interpreter(model_path=MODEL_PATH)
-interpreter.allocate_tensors()
-
-# Get input and output details
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
-
-print("TFLite model loaded successfully.")
-print(f"Input shape: {input_details[0]['shape']}")
-print(f"Output shape: {output_details[0]['shape']}")
+model = load_model(MODEL_PATH)
+print("Model loaded successfully.")
 
 
 def allowed_file(filename: str) -> bool:
@@ -75,41 +67,9 @@ def preprocess_segment(segment_audio: tuple) -> np.ndarray:
     return spec
 
 
-def predict_batch_tflite(batch: np.ndarray) -> np.ndarray:
-    """
-    Performs batch prediction using TFLite interpreter.
-    
-    Args:
-        batch (np.ndarray): Batch of preprocessed spectrograms.
-        
-    Returns:
-        np.ndarray: Prediction results for the batch.
-    """
-    batch_size = batch.shape[0]
-    all_predictions = []
-    
-    # TFLite biasanya tidak mendukung batch processing secara langsung
-    # Jadi kita perlu melakukan prediksi satu per satu
-    for i in range(batch_size):
-        # Prepare input data (add batch dimension jika diperlukan)
-        input_data = batch[i:i+1].astype(np.float32)
-        
-        # Set input tensor
-        interpreter.set_tensor(input_details[0]['index'], input_data)
-        
-        # Run inference
-        interpreter.invoke()
-        
-        # Get output
-        output_data = interpreter.get_tensor(output_details[0]['index'])
-        all_predictions.append(output_data[0])  # Remove batch dimension
-    
-    return np.array(all_predictions)
-
-
 def predict_file(audio_path: str) -> tuple[list, int]:
     """
-    Predicts the bird species in an audio file using a trained TFLite model.
+    Predicts the bird species in an audio file using a trained CNN model.
 
     The function:
     - Loads the audio file
@@ -133,8 +93,7 @@ def predict_file(audio_path: str) -> tuple[list, int]:
     specs = [preprocess_segment(seg) for seg in segments]
     batch = np.stack(specs, axis=0)
 
-    # Gunakan fungsi prediksi TFLite
-    preds = predict_batch_tflite(batch)
+    preds = model.predict(batch, verbose=0)
     avg_probs = preds.mean(axis=0)
     pred_idx = int(np.argmax(avg_probs))
     return avg_probs.tolist(), pred_idx
