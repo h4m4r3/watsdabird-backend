@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 import os
 import numpy as np
-# Hapus import keras_cv_attention_models dan tensorflow.keras.models
 import tensorflow as tf
 from preprocessing.audio_util import AudioUtil
 
@@ -18,11 +17,58 @@ SAMPLE_RATE = 22050
 WINDOW_MS = 5000
 OVERLAP_MS = 2500
 
+# CLASS_MAP = {
+#     0: "AtlanticCanary",
+#     1: "Sooty-headedBulbul",
+#     2: "ZebraDove",
+#     3: "MoustachedBabbler",
+# }
+
 CLASS_MAP = {
-    0: "AtlanticCanary",
-    1: "Sooty-headedBulbul",
-    2: "ZebraDove",
-    3: "MoustachedBabbler",
+    0: {
+        "name": "AtlanticCanary",
+        "common_name_id": "Kenari Atlantik",
+        "scientific_name": "Serinus canaria",
+        "genus": "Serinus",
+        "subfamily": "Carduelinae",
+        "family": "Fringillidae",
+        "order": "Passeriformes",
+        "description": "Kenari Atlantik adalah burung pengicau kecil yang berasal dari Kepulauan Canary, Madeira, dan Azores. Burung ini terkenal karena suaranya yang merdu dan sering dijadikan burung peliharaan.",
+        "image_url": "https://www.whatbirdisthis.org/sites/default/files/14478544722_1f5b503f9f_z.jpg"
+    },
+    1: {
+        "name": "Sooty-headedBulbul",
+        "common_name_id": "Cucak Kutilang",
+        "scientific_name": "Pycnonotus aurigaster",
+        "genus": "Pycnonotus",
+        "subfamily": "Pycnonotinae",
+        "family": "Pycnonotidae",
+        "order": "Passeriformes",
+        "description": "Cucak kutilang adalah burung kicau populer di Indonesia, mudah dikenali dengan kepala hitam kelam dan suara kicau yang nyaring. Burung ini sering ditemukan di taman, pekarangan, serta area pepohonan atau semak belukar di sekitar pemukiman.",
+        "image_url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRmAaM9zRiX_igmaAyffog-2ht-cKtesS-_X-evPShUSGYoODCgXzRQSHi7FWi4r05b3FRXlYGIkT7sR5P0dNAKDg"
+    },
+    2: {
+        "name": "ZebraDove",
+        "common_name_id": "Perkutut Zebra",
+        "scientific_name": "Geopelia striata",
+        "genus": "Geopelia",
+        "subfamily": "Geopeliinae",
+        "family": "Columbidae",
+        "order": "Columbiformes",
+        "description": "Perkutut Zebra adalah burung merpati kecil dengan pola garis-garis hitam putih di dada dan tubuh. Burung ini populer sebagai burung peliharaan di Asia Tenggara karena suaranya yang merdu dan menenangkan.",
+        "image_url": "https://birdlifedata.blob.core.windows.net/species-images/22690708.jpg"
+    },
+    3: {
+        "name": "MoustachedBabbler",
+        "common_name_id": "Asi kumis",
+        "scientific_name": "Malacopteron magnirostre",
+        "genus": "Malacopteron",
+        "subfamily": "Timaliinae",
+        "family": "Pellorneidae",
+        "order": "Passeriformes",
+        "description": "Asi kumis adalah burung kecil yang hidup di kawasan tropis Asia Tenggara. Ciri khasnya adalah adanya 'kumis' putih di sisi wajah. Burung ini biasanya hidup dalam kelompok kecil dan suaranya sering terdengar di area berhutan lebat.",
+        "image_url": "https://cdn.download.ams.birds.cornell.edu/api/v1/asset/462489281/1200"
+    },
 }
 
 # ----------------------------
@@ -181,7 +227,7 @@ def predict():
                 {
                     "prediction": CLASS_MAP.get(pred_idx, f"Class {pred_idx}"),
                     "probabilities": {
-                        CLASS_MAP.get(i, f"Class {i}"): round(p, 4)
+                        CLASS_MAP.get(i, f"Class {i}")['name']: round(p, 4)
                         for i, p in enumerate(probs)
                     },
                 }
